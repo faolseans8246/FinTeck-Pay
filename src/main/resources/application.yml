@@ -1,0 +1,10 @@
+
+server:
+  port: 2027
+
+spring:
+  application:
+    name: Main_Back_End
+
+  profiles:
+    active: dev
