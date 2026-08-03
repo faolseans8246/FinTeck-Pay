@@ -1,0 +1,15 @@
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fintech_db
+    username: fintech_user
+    password: FinTeck-123
+
+  jpa:
+    hibernate:
+      ddl-auto: drop-and-create
+    show-sql: true
+
+jwt:
+  secret: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTA4MjAyNjI3IiwibmFtZSI6IkZpblRlY2giLCJhZG1pbiI6dHJ1ZSwiaWF0IjoxNzg1NzMyMzQ1LCJleHAiOjE3ODU3MzU5NDV9.bhHU1FOHq_n9IQU57e7RJEV2EQ-K6GzNtU3UO7aeMuY
+  expiration: 86400000
