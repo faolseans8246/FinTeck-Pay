@@ -28,9 +28,8 @@ public class AuthServiceImpl implements AuthService {
 
     private final AuthUserRepository authUserRepository;
     private final PasswordEncoder passwordEncoder;
-    private JwtUtil jwtUtil;
-    // private final SmsService smsService;
-    // private final EmailService emailService;
+    private final JwtUtil jwtUtil;
+    private final com.example.main_back_end.notification.NotificationService notificationService;
 
     private static final String PROGRAMMIST_LOGIN = "Login";
     private static final String PROGRAMMIST_PASSWORD = "Parol";
@@ -50,7 +49,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String identifier = (registerRequest.email() != null && !registerRequest.email().isBlank())
-                ? registerRequest.email() : registerRequest.phone();
+            ? registerRequest.email() : registerRequest.phone();
 
         if (authUserRepository.existsByEmailOrPhone(registerRequest.email(), registerRequest.phone())) {
             return ApiResponse.error("Bu email yoki telefon bazada mavjud!");
@@ -59,21 +58,23 @@ public class AuthServiceImpl implements AuthService {
         String otp = generateOtp();
 
         AuthUser user = AuthUser.builder()
-                .email(registerRequest.email())
-                .phone(registerRequest.phone())
-                .username(identifier)
-                .password(passwordEncoder.encode(registerRequest.password()))
-                .role(Roles.USER)
-                .enabled(false)
-                .otpCode(otp)
-                .otpExpiry(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5))
-                .build();
+            .email(registerRequest.email())
+            .phone(registerRequest.phone())
+            .username(identifier)
+            .role(Roles.USER)
+            .enabled(false)
+            .otpCode(otp)
+            .otpExpiry(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5))
+            .build();
 
         authUserRepository.save(user);
 
         // TODO: OTP yuborish
-        // if (request.email() != null) emailService.sendOtp(request.email(), otp);
-        // else smsService.sendOtp(request.phone(), otp);
+        if (registerRequest.email() != null && !registerRequest.email().isBlank()) {
+            notificationService.sendOtpToEmail(registerRequest.email(), otp);
+        } else if (registerRequest.phone() != null && !registerRequest.phone().isBlank()) {
+            notificationService.sendOtpToPhone(registerRequest.phone(), otp);
+        }
 
         RegisterResponse data = new RegisterResponse("OTP yuborildi", identifier);
         return ApiResponse.success("Ro'yhatdan o'tish muvaffaqiyatli boshlandi!", data);
@@ -106,10 +107,14 @@ public class AuthServiceImpl implements AuthService {
         user.setOtpCode(null);
         user.setOtpExpiry(null);
 
-        String token = jwtUtil.generateToken(user.getUsername());
-        VerifyOtpResponse data = new VerifyOtpResponse("Token muvaffaqiyatli tasdiqlandi", token);
+        String subject = user.getUsername() != null ? user.getUsername() : verifyOtpRequest.identifier();
+        user.setUsername(subject);
+        authUserRepository.save(user);
 
-        return ApiResponse.success("DHisob tasdiqlandi", data);
+        String token = jwtUtil.generateToken(subject);
+        VerifyOtpResponse data = new VerifyOtpResponse("OTP tasdiqlandi", token);
+
+        return ApiResponse.success("Hisob tasdiqlandi. Iltimos, login va parol yarating.", data);
     }
 
     /**
@@ -137,11 +142,11 @@ public class AuthServiceImpl implements AuthService {
             return ApiResponse.error("Login yoki parol noto'g'ri");
         }
 
-        if (user.isEnabled()) {
+        if (!user.isEnabled()) {
             return ApiResponse.error("Hisob hali tasdiqlanmagan, Avval OTP ni tasdiqlang!");
         }
 
-        if (!passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
+        if (user.getPassword() == null || !passwordEncoder.matches(loginRequest.password(), user.getPassword())) {
             return ApiResponse.error("Login yoki Parol noto'g'ri");
         }
 
@@ -149,6 +154,147 @@ public class AuthServiceImpl implements AuthService {
         LoginResponse data = new LoginResponse(token, user.getRole().name(), user.getUsername());
 
         return ApiResponse.success("Muvaffaqiyatli kirildi", data);
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<LoginResponse> completeRegistration(com.example.main_back_end.dto.request.CompleteRegistrationRequest completeRegistrationRequest) {
+
+        AuthUser user = authUserRepository.findByEmailOrPhone(completeRegistrationRequest.identifier(), completeRegistrationRequest.identifier()).orElse(null);
+
+        if (user == null) {
+            return ApiResponse.error("Foydalanuvchi topilmadi!");
+        }
+
+        if (!user.isEnabled()) {
+            return ApiResponse.error("Ilk avval OTP ni tasdiqlang!");
+        }
+
+        if (authUserRepository.existsByUsername(completeRegistrationRequest.login())) {
+            return ApiResponse.error("Bu login allaqachon foydalanilmoqda!");
+        }
+
+        user.setUsername(completeRegistrationRequest.login());
+        user.setPassword(passwordEncoder.encode(completeRegistrationRequest.password()));
+
+        AuthUser saved = authUserRepository.save(user);
+
+        String token = jwtUtil.generateToken(saved.getUsername());
+        LoginResponse data = new LoginResponse(token, saved.getRole().name(), saved.getUsername());
+
+        return ApiResponse.success("Ro'yhatdan to'liq o'tildi", data);
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<com.example.main_back_end.dto.response.ApiMessageResponse> requestPasswordReset(com.example.main_back_end.dto.request.RequestPasswordResetRequest requestPasswordResetRequest) {
+
+        if ((requestPasswordResetRequest.email() == null || requestPasswordResetRequest.email().isBlank()) &&
+                (requestPasswordResetRequest.phone() == null || requestPasswordResetRequest.phone().isBlank())) {
+            return ApiResponse.error("Email yoki telefon majburiy");
+        }
+
+        AuthUser user = authUserRepository.findByEmailOrPhone(requestPasswordResetRequest.email(), requestPasswordResetRequest.phone()).orElse(null);
+
+        if (user == null) return ApiResponse.error("Foydalanuvchi topilmadi");
+
+        String code = generateOtp();
+        user.setResetCode(code);
+        user.setResetExpiry(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(15));
+        authUserRepository.save(user);
+
+        if (requestPasswordResetRequest.email() != null && !requestPasswordResetRequest.email().isBlank()) {
+            notificationService.sendResetCodeToEmail(requestPasswordResetRequest.email(), code);
+        } else {
+            notificationService.sendResetCodeToPhone(requestPasswordResetRequest.phone(), code);
+        }
+
+        return ApiResponse.success(new com.example.main_back_end.dto.response.ApiMessageResponse("Reset kodi yuborildi"));
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<com.example.main_back_end.dto.response.VerifyResetResponse> verifyResetCode(com.example.main_back_end.dto.request.VerifyResetCodeRequest verifyResetCodeRequest) {
+
+        AuthUser user = authUserRepository.findByEmailOrPhone(verifyResetCodeRequest.identifier(), verifyResetCodeRequest.identifier()).orElse(null);
+        if (user == null) return ApiResponse.error("Foydalanuvchi topilmadi");
+
+        if (user.getResetCode() == null || !user.getResetCode().equals(verifyResetCodeRequest.code())) {
+            return ApiResponse.error("Noto'g'ri reset kodi");
+        }
+
+        if (user.getResetExpiry() == null || user.getResetExpiry() < System.currentTimeMillis()) {
+            return ApiResponse.error("Reset kodi muddati tugagan");
+        }
+
+        String resetToken = java.util.UUID.randomUUID().toString();
+        user.setResetToken(resetToken);
+        user.setResetCode(null);
+        user.setResetExpiry(null);
+        authUserRepository.save(user);
+
+        com.example.main_back_end.dto.response.VerifyResetResponse data = new com.example.main_back_end.dto.response.VerifyResetResponse("Reset token berildi", resetToken);
+        return ApiResponse.success(data);
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<com.example.main_back_end.dto.response.ApiMessageResponse> resetPassword(com.example.main_back_end.dto.request.ResetPasswordRequest resetPasswordRequest) {
+
+        if (resetPasswordRequest.resetToken() == null || resetPasswordRequest.resetToken().isBlank()) {
+            return ApiResponse.error("resetToken kerak");
+        }
+
+        AuthUser user = authUserRepository.findAll().stream()
+                .filter(u -> resetPasswordRequest.resetToken().equals(u.getResetToken()))
+                .findFirst().orElse(null);
+
+        if (user == null) return ApiResponse.error("Noto'g'ri reset token");
+
+        user.setPassword(passwordEncoder.encode(resetPasswordRequest.newPassword()));
+        user.setResetToken(null);
+        authUserRepository.save(user);
+
+        return ApiResponse.success(new com.example.main_back_end.dto.response.ApiMessageResponse("Parol muvaffaqiyatli o'zgartirildi"));
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<com.example.main_back_end.dto.response.ApiMessageResponse> changePassword(com.example.main_back_end.dto.request.ChangePasswordRequest changePasswordRequest, String currentUsername) {
+
+        AuthUser user = authUserRepository.findByUsername(currentUsername).orElse(null);
+        if (user == null) return ApiResponse.error("Foydalanuvchi topilmadi");
+
+        if (!passwordEncoder.matches(changePasswordRequest.oldPassword(), user.getPassword())) {
+            return ApiResponse.error("Eski parol noto'g'ri");
+        }
+
+        user.setPassword(passwordEncoder.encode(changePasswordRequest.newPassword()));
+        authUserRepository.save(user);
+
+        return ApiResponse.success(new com.example.main_back_end.dto.response.ApiMessageResponse("Parol muvaffaqiyatli o'zgartirildi"));
+    }
+
+    @Override
+    public ApiResponse<com.example.main_back_end.dto.response.ApiMessageResponse> logout(String refreshToken) {
+        // Stateless JWT: nothing to do unless you implement token blacklist.
+        return ApiResponse.success(new com.example.main_back_end.dto.response.ApiMessageResponse("Chiqish muvaffaqiyatli"));
+    }
+
+    @Override
+    public ApiResponse<LoginResponse> refresh(String token) {
+        try {
+            String username = jwtUtil.extractUsername(token);
+            if (jwtUtil.validateToken(token, username)) {
+                String newToken = jwtUtil.generateToken(username);
+                LoginResponse data = new LoginResponse(newToken, authUserRepository.findByUsername(username).map(u -> u.getRole().name()).orElse(Roles.USER.name()), username);
+                return ApiResponse.success(data);
+            } else {
+                return ApiResponse.error("Token yaroqsiz");
+            }
+        } catch (Exception e) {
+            return ApiResponse.error("Token parse xatosi");
+        }
     }
 
     @Override
@@ -170,9 +316,6 @@ public class AuthServiceImpl implements AuthService {
         AuthUser admin = AuthUser.builder()
                 .username(createAdminRequest.username())
                 .password(passwordEncoder.encode(createAdminRequest.password()))
-                .email(createAdminRequest.email())
-                .phone(createAdminRequest.phone())
-                .role(Roles.ADMIN)
                 .enabled(true)
                 .build();
 
