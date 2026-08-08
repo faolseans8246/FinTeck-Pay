@@ -43,8 +43,8 @@ public class JwtFilter extends OncePerRequestFilter {
                         SecurityContextHolder.getContext().setAuthentication(authToken);
                     }
                 }
-            } catch (Exception e) {
-                // Token yaroqsiz bo'lsa hech narsa qilmaymiz
+            } catch (Exception ignored) {
+                SecurityContextHolder.clearContext();
             }
         }
 

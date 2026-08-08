@@ -32,4 +32,8 @@ public class AuthUser extends Ids {
     private boolean enabled = false;    // OTP tasdiqlangandan keyin true
     private String otpCode;
     private Long otpExpiry;             // millis
+    // parolni tiklash uchun
+    private String resetCode;
+    private Long resetExpiry;
+    private String resetToken;
 }

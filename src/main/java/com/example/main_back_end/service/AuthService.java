@@ -15,5 +15,12 @@ public interface AuthService {
     ApiResponse<RegisterResponse> register(RegisterRequest registerRequest);
     ApiResponse<VerifyOtpResponse> verifyOtp(VerifyOtpRequest verifyOtpRequest);
     ApiResponse<LoginResponse> login(LoginRequest loginRequest);
+    ApiResponse<LoginResponse> completeRegistration(com.example.main_back_end.dto.request.CompleteRegistrationRequest completeRegistrationRequest);
+    ApiResponse<com.example.main_back_end.dto.response.ApiMessageResponse> requestPasswordReset(com.example.main_back_end.dto.request.RequestPasswordResetRequest requestPasswordResetRequest);
+    ApiResponse<com.example.main_back_end.dto.response.VerifyResetResponse> verifyResetCode(com.example.main_back_end.dto.request.VerifyResetCodeRequest verifyResetCodeRequest);
+    ApiResponse<com.example.main_back_end.dto.response.ApiMessageResponse> resetPassword(com.example.main_back_end.dto.request.ResetPasswordRequest resetPasswordRequest);
+    ApiResponse<com.example.main_back_end.dto.response.ApiMessageResponse> changePassword(com.example.main_back_end.dto.request.ChangePasswordRequest changePasswordRequest, String currentUsername);
+    ApiResponse<com.example.main_back_end.dto.response.ApiMessageResponse> logout(String refreshToken);
+    ApiResponse<com.example.main_back_end.dto.response.LoginResponse> refresh(String token);
     ApiResponse<CreateAdminResponse> createAdmin(CreateAdminRequest createAdminRequest, String currentUsername);
 }
