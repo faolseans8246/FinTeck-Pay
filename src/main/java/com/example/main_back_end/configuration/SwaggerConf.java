@@ -17,7 +17,7 @@ public class SwaggerConf {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Clone Bank")
+                        .title("Clone Payment System")
                         .description("FinTech loyihasi bilan ishlash va uni shakllantirish")
                         .version("1.0.0")
                         .contact(new Contact()

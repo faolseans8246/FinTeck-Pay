@@ -24,18 +24,66 @@ public class MainSecurity {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
+
         http
+                // REST API bo'lgani uchun CSRF o'chiriladi
                 .csrf(csrf -> csrf.disable())
+
+                // CORS konfiguratsiyasi
                 .cors(cors -> cors.configure(http))
+
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/programmist/**").hasRole("PROGRAMMIST")
+
+                        // Authentication endpointlari ochiq
+                        .requestMatchers(
+                                "/api/auth/**"
+                        ).permitAll()
+
+                        // Swagger ochiq
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+
+                        // User API faqat login qilgan userlar uchun
+                        .requestMatchers(
+                                "/api/users/**"
+                        ).authenticated()
+
+                        // Card API faqat login qilgan userlar uchun
+                        .requestMatchers(
+                                "/api/cards/**"
+                        ).authenticated()
+
+                        // Admin API faqat ADMIN uchun
+                        .requestMatchers(
+                                "/api/admin/**"
+                        ).hasRole("ADMIN")
+
+                        // Programmist API faqat PROGRAMMIST uchun
+                        .requestMatchers(
+                                "/api/programmist/**"
+                        ).hasRole("PROGRAMMIST")
+
+                        // Qolgan barcha endpointlar authentication talab qiladi
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+                // JWT ishlatilgani sababli session saqlanmaydi
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
+
+                // JWT filter UsernamePasswordAuthenticationFilter'dan oldin ishlaydi
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
