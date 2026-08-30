@@ -23,6 +23,9 @@ public class Address {
     @Column(name = "region")
     private String region;
 
+    @Column(name = "district")
+    private String district;
+
     @Column(name = "street")
     private String street;
 

@@ -30,6 +30,10 @@ public class AuthController {
     private final AuthService authService;
     private final JwtUtil jwtUtil;
 
+    /**
+     * Foydalanuvchi ro'yxatdan o'tish bosqichi.
+     * Email yoki telefon orqali OTP yuboriladi va hisobni tasdiqlash uchun keyingi qadamga o'tkaziladi.
+     */
     @Operation(summary = "Ro'yxatga olish — OTP yuborish", description = "Email yoki telefon raqamni yuboring. Tizim sizga OTP kodini yuboradi (odatda 5 daqiqa ichida amal qiladi).")
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest registerRequest) {
@@ -38,6 +42,9 @@ public class AuthController {
         return ResponseEntity.status(apiResponse.isSuccess() ? 200 : 400).body(apiResponse);
     }
 
+    /**
+     * OTP kodini tasdiqlash va foydalanuvchi hisobini faol holatga keltirish.
+     */
     @Operation(summary = "OTP tasdiqlash", description = "Identifier (email yoki telefon) va OTP kodini yuboring. Agar kod to'g'ri bo'lsa, hisob tasdiqlanadi va keyingi `complete-registration` bosqichiga o'tishingiz mumkin.")
     @PostMapping("/verify-otp")
     public ResponseEntity<ApiResponse<VerifyOtpResponse>> verifyOtp(@Valid @RequestBody VerifyOtpRequest verifyOtpRequest) {
@@ -46,6 +53,9 @@ public class AuthController {
         return ResponseEntity.status(apiResponse.isSuccess() ? 200 : 400).body(apiResponse);
     }
 
+    /**
+     * Ro'yxatdan o'tishni yakunlash: login va parol tayinlash; keyin JWT token qaytariladi.
+     */
     @Operation(summary = "Ro'yxatni yakunlash", description = "OTP tasdiqlangan identifier uchun `login` va `password` o'rnating. Muvaffaqiyatli yakunlanganda JWT token qaytariladi.")
     @PostMapping("/complete-registration")
     public ResponseEntity<ApiResponse<LoginResponse>> completeRegistration(@Valid @RequestBody CompleteRegistrationRequest completeRegistrationRequest) {
@@ -53,6 +63,9 @@ public class AuthController {
         return ResponseEntity.status(apiResponse.isSuccess() ? 200 : 400).body(apiResponse);
     }
 
+    /**
+     * Login va parol bilan tizimga kirish; JWT access token qaytariladi.
+     */
     @Operation(summary = "Kirish (login/parol)", description = "O'rnatilgan `username` va `password` bilan tizimga kiring. Muvaffaqiyatli kirishda access token qaytariladi.")
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
