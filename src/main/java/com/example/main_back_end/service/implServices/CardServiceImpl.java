@@ -12,6 +12,7 @@ import com.example.main_back_end.repository.CardBalanceRepository;
 import com.example.main_back_end.repository.CardRepository;
 import com.example.main_back_end.repository.UsersRepository;
 import com.example.main_back_end.roles.CardTypes;
+import com.example.main_back_end.roles.CardStatus;
 import com.example.main_back_end.roles.CurrencyType;
 import com.example.main_back_end.service.CardService;
 import lombok.RequiredArgsConstructor;
@@ -241,6 +242,34 @@ public class CardServiceImpl implements CardService {
                 null
         );
     }
+
+        @Override
+        public ApiResponse<CardResponse> freeze(UUID userId, UUID cardId) {
+                return changeStatus(cardRepository.findByIdAndUserId(cardId, userId).orElse(null), CardStatus.FROZEN);
+        }
+
+        @Override
+        public ApiResponse<CardResponse> unfreeze(UUID userId, UUID cardId) {
+                return changeStatus(cardRepository.findByIdAndUserId(cardId, userId).orElse(null), CardStatus.ACTIVE);
+        }
+
+        @Override
+        public ApiResponse<CardResponse> block(UUID cardId) {
+                return changeStatus(cardRepository.findById(cardId).orElse(null), CardStatus.BLOCKED);
+        }
+
+        @Override
+        public ApiResponse<CardResponse> unblock(UUID cardId) {
+                return changeStatus(cardRepository.findById(cardId).orElse(null), CardStatus.ACTIVE);
+        }
+
+        private ApiResponse<CardResponse> changeStatus(Cards card, CardStatus status) {
+                if (card == null) {
+                        return ApiResponse.error("Card topilmadi");
+                }
+                card.setCardStatus(status);
+                return ApiResponse.success("Card holati yangilandi", mapToResponse(card));
+        }
 
 
     // =====================================================
