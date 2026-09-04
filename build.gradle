@@ -43,6 +43,7 @@ dependencies {
 
     // --- Swagger / OpenAPI ---
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.11'    // --- Spring Boot Admin (Server va Client) ---
+    implementation 'com.github.librepdf:openpdf:2.0.3'
 //    implementation 'de.codecentric:spring-boot-admin-starter-server:3.2.3'
 
 

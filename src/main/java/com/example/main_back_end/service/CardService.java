@@ -27,4 +27,12 @@ public interface CardService {
             UUID userId,
             UUID cardId
     );
+
+        ApiResponse<CardResponse> freeze(UUID userId, UUID cardId);
+
+        ApiResponse<CardResponse> unfreeze(UUID userId, UUID cardId);
+
+        ApiResponse<CardResponse> block(UUID cardId);
+
+        ApiResponse<CardResponse> unblock(UUID cardId);
 }

@@ -177,6 +177,16 @@ public class CardController {
         return ResponseEntity.ok(response);
     }
 
+        @PutMapping("/{cardId}/freeze")
+        public ResponseEntity<ApiResponse<CardResponse>> freeze(@PathVariable UUID cardId, Authentication authentication) {
+                return ResponseEntity.ok(cardService.freeze(getUserId(authentication), cardId));
+        }
+
+        @PutMapping("/{cardId}/unfreeze")
+        public ResponseEntity<ApiResponse<CardResponse>> unfreeze(@PathVariable UUID cardId, Authentication authentication) {
+                return ResponseEntity.ok(cardService.unfreeze(getUserId(authentication), cardId));
+        }
+
 
     // =========================================================
     // GET USER ID

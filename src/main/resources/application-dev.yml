@@ -13,3 +13,9 @@ spring:
 jwt:
   secret: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTA4MjAyNjI3IiwibmFtZSI6IkZpblRlY2giLCJhZG1pbiI6dHJ1ZSwiaWF0IjoxNzg1NzMyMzQ1LCJleHAiOjE3ODU3MzU5NDV9.bhHU1FOHq_n9IQU57e7RJEV2EQ-K6GzNtU3UO7aeMuY
   expiration: 86400000
+
+central-bank:
+  rates-url: https://cbu.uz/uz/arkhiv-kursov-valyut/json/
+  api-key: ${CENTRAL_BANK_API_KEY:}
+storage:
+  checks-directory: storage/checks
